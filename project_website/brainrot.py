@@ -10,7 +10,7 @@ def extract_text_from_pdf(pdf_path): #needs to be in pdf, turns it into a huge s
             text += page.extract_text() + " "
     return text
 
-def split_text(text, chunk_size=9): #splits text to 5 words on the video at a time
+def split_text(text, chunk_size=16): #splits text to 5 words on the video at a time
     words = text.split()
     return [" ".join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size)]
 
@@ -52,7 +52,7 @@ def create_video(text, bg_video, output_video):
     final_video = final_video.with_audio(audio_clip)
     final_video.write_videofile(output_video, fps=24)
     
-    os.remove(audio_path) #clean up
+    # os.remove(audio_path) #clean up
 
 # Example usage
 # create_video("text", "1min30video.mp4", "output.mp4")
