@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clarifii | Flashcards</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+    <style>
+        .questionBox input {
+          margin: 10px 0;
+        }
+  
+        .questionBox button {
+          margin: 20px 0;
+          display: block;
+        }
+  
+        #loadingBox {
+          display: none;
+          margin-top: 200px;
+        }
+  
+        .loader {
+          width: 48px;
+          height: 48px;
+          border: 5px solid #fff;
+          border-radius: 50%;
+          display: inline-block;
+          box-sizing: border-box;
+          position: relative;
+          animation: pulse 1s linear infinite;
+        }
+        .loader:after {
+          content: "";
+          position: absolute;
+          width: 48px;
+          height: 48px;
+          border: 5px solid #fff;
+          border-radius: 50%;
+          display: inline-block;
+          box-sizing: border-box;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          animation: scaleUp 1s linear infinite;
+        }
+  
+        @keyframes scaleUp {
+          0% {
+            transform: translate(-50%, -50%) scale(0);
+          }
+          60%,
+          100% {
+            transform: translate(-50%, -50%) scale(1);
+          }
+        }
+        @keyframes pulse {
+          0%,
+          60%,
+          100% {
+            transform: scale(1);
+          }
+          80% {
+            transform: scale(1.2);
+          }
+        }
+  
+        @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap");
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+          font-family: "Poppins", sans-serif;
+        }
+        .wixui-button {
+          --glow-color: #77cff5;
+          --glow-spread-color: rgb(114 201 255 / 78%);
+          --enhanced-glow-color: rgb(99 246 255);
+          --btn-color: rgb(83 255 208);
+          border: 0.25em solid var(--glow-color);
+          padding: 1em 3em;
+          color: var(--glow-color);
+          font-size: 15px;
+          font-weight: bold;
+          background-color: #0e1817;
+          border-radius: 1em;
+          outline: none;
+          cursor: pointer;
+          box-shadow: 0 0 1em 0.25em var(--glow-color),
+            0 0 4em 1em var(--glow-spread-color),
+            inset 0 0 0.75em 0.25em var(--glow-color);
+          text-shadow: 0 0 0.5em var(--glow-color);
+          position: relative;
+          transition: all 0.3s;
+          align-items: center;
+          box-sizing: border-box;
+          display: flex;
+          justify-content: var(--label-align);
+          text-align: initial;
+        }
+  
+        .wixui-button::after {
+          pointer-events: none;
+          content: "";
+          position: absolute;
+          top: 120%;
+          left: 0;
+          height: 100%;
+          width: 100%;
+          background-color: var(--glow-spread-color);
+          filter: blur(2em);
+          opacity: 0.7;
+          transform: perspective(1.5em) rotateX(35deg) scale(1, 0.6);
+        }
+  
+        .wixui-button:hover {
+          color: rgb(39 34 11);
+          background-color: #52a4c8;
+          box-shadow: 0 0 1em 0.25em var(--glow-color),
+            0 0 4em 2em var(--glow-spread-color),
+            inset 0 0 0.75em 0.25em var(--glow-color);
+        }
+  
+        .wixui-button:active {
+          box-shadow: 0 0 0.6em 0.25em #b28ad8,
+            0 0 2.5em 2em var(--glow-spread-color),
+            inset 0 0 0.5em 0.25em var(--glow-color);
+        }
+  
+        .wixui-button span {
+          font: var(--fnt, var(--font_5));
+          margin: 0;
+          position: relative;
+          transition: var(--trans2, color 0.4s ease 0s);
+          white-space: nowrap;
+          font-weight: 1000;
+        }
+        body {
+          align-items: center;
+          justify-content: center;
+          /* min-height: 100vh; */
+          background: #071018;
+          flex-direction: column;
+          gap: 100px;
+          color: white;
+          margin-top: 50px;
+          margin-bottom: 200px;
+        }
+        .drag-area {
+          border: 2px dashed rgb(99 246 255);
+          height: 500px;
+          width: 700px;
+          border-radius: 5px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+        }
+        .drag-area.active {
+          -webkit-box-shadow: 0px 0px 144px 18px rgba(42, 145, 224, 0.6);
+          -moz-box-shadow: 0px 0px 144px 18px rgba(42, 145, 224, 0.6);
+          box-shadow: 0px 0px 144px 18px rgba(42, 145, 224, 0.6);
+        }
+        button {
+          position: relative;
+          font: inherit;
+          background-color: #f0f0f0;
+          border: 0;
+          color: #242424;
+          border-radius: 0.5em;
+          font-size: 16px;
+          padding: 0.375em 1em;
+          font-weight: 600;
+          text-shadow: 0 0.0625em 0 #fff;
+          box-shadow: inset 0 0.0625em 0 0 #f4f4f4, 0 0.0625em 0 0 #efefef,
+              0 0.125em 0 0 #ececec, 0 0.25em 0 0 #e0e0e0, 0 0.3125em 0 0 #dedede,
+              0 0.375em 0 0 #dcdcdc, 0 0.425em 0 0 #cacaca, 0 0.425em 0.5em 0 #cecece;
+          transition: 0.25s ease;
+          pointer: cursor;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+          cursor: pointer;
+      
+          &:active,
+          &:hover {
+              transform: translateY(0.225em);
+              box-shadow: inset 0 0.03em 0 0 #f4f4f4, 0 0.03em 0 0 #efefef,
+                  0 0.0625em 0 0 #ececec, 0 0.125em 0 0 #e0e0e0, 0 0.125em 0 0 #dedede,
+                  0 0.2em 0 0 #dcdcdc, 0 0.225em 0 0 #cacaca, 0 0.225em 0.375em 0 #cecece;
+      
+              &:after {
+                  height: calc(100% + 0.225em);
+              }
+          }
+      
+          &:after {
+              position: absolute;
+              content: "";
+              display: block;
+              width: 100%;
+              height: calc(100% + 0.375em);
+              top: 0;
+              left: 0;
+              background-color: transparent;
+              transition: height 0.25s ease;
+          }
+      }
+      
+        .drag-area .icon {
+          font-size: 100px;
+          color: #fff;
+        }
+        .drag-area header {
+          font-size: 30px;
+          font-weight: 500;
+          color: #fff;
+        }
+        .drag-area span {
+          font-size: 25px;
+          font-weight: 500;
+          color: #fff;
+          margin: 10px 0 15px 0;
+        }
+        .drag-area button {
+          padding: 10px 25px;
+          font-size: 20px;
+          font-weight: 500;
+          border: none;
+          outline: none;
+          background: #fff;
+          color: #5256ad;
+          border-radius: 5px;
+          cursor: pointer;
+        }
+        .drag-area img {
+          height: 100%;
+          width: 100%;
+          object-fit: cover;
+          border-radius: 5px;
+        }
+  
+        .drag-area p {
+          margin-top: 30px;
+        }
+  
+        .questionBox {
+          width: 50vw;
+          height: 120vh;
+          background-color: white;
+          color: black;
+          border-radius: 10px;
+          padding: 30px;
+          --s: 1em; /* control the size */
+          --g: 10px; /* the gap */
+          --c: #009688; /* the active color */
+          display: grid;
+          grid-auto-rows: 1fr;
+          gap: var(--g);
+          position: relative;
+          margin-top: 100px;
+      }
+        
+        body {
+          margin: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          background-color: #232739;
+          flex-direction: column;
+        }
+        
+        :root {
+          --cSize: 30px;
+          --cInactive: #232739;
+          --cActive: #577af3;
+          --particleSize: 4px;
+          --cEasing: ease;
+          --cTiming: 0.5s;
+          --innerPaddingSize: 30px;
+        }
+        
+        .particles-checkbox {
+          height: var(--cSize);
+          width: var(--cSize);
+          display: inline-flex;
+          appearance: none;
+          border: 3px solid #404854;
+          border-radius: 50%;
+          position: relative;
+          cursor: pointer;
+          transition: all var(--cTiming) var(--cEasing);
+          margin: 2px;
+        }
+        
+        .particles-checkbox:focus {
+          outline: 0;
+        }
+        
+        .particles-checkbox:checked {
+          background-color: var(--cActive);
+        }
+        
+        .particles-checkbox:checked::after {
+          background-color: #ffffff;
+          height: calc(var(--cSize) * 0.3);
+          width: calc(var(--cSize) * 0.3);
+        }
+        
+        .particles-checkbox:checked::before {
+          animation: particleAnimate var(--cTiming) var(--cEasing) forwards;
+        }
+        
+        .particles-checkbox + span {
+          border-color: #577af3;
+          color: #d0d3e0;
+        }
+        
+        .particles-checkbox::before,
+        .particles-checkbox::after {
+          content: "";
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          margin: auto;
+          border-radius: inherit;
+        }
+        
+        .particles-checkbox::after {
+          transition: all var(--cTiming) var(--cEasing);
+        }
+        
+        .particles-checkbox::before {
+          height: var(--particleSize);
+          width: var(--particleSize);
+          z-index: 2;
+        }
+        
+        @keyframes particleAnimate {
+          0% {
+            box-shadow: none;
+            transform: rotate(0turn);
+            opacity: 1;
+          }
+          50%, 100% {
+            box-shadow: 
+              0px 0px 0px #f94144, 5px 5px 0px #f94144, -5px -5px 0px #f94144, 
+              10px 10px 0px #f9c74f, -10px -10px 0px #f9c74f, 
+              15px 15px 0px #ffd166, -15px -15px 0px #ffd166;
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+            transform: rotate(0.5turn);
+          }
+        }
+        
+        .particles-checkbox-container {
+          display: inline-flex;
+          align-items: center;
+          border-radius: 8px;
+          cursor: pointer;
+          position: relative;
+          transition: all var(--cTiming) var(--cEasing);
+        }
+        
+        .particles-checkbox-container span {
+          border: 3px solid transparent;
+          border-radius: 15px;
+          padding: 10px;
+          margin-left: 4px;
+          padding: var(--innerPaddingSize);
+          padding-left: calc(var(--cSize) + var(--innerPaddingSize) + 10px);
+          width: 300px;
+          color: black;
+          transition: all var(--cTiming) var(--cEasing);
+        }
+        
+        .particles-checkbox-container .particles-checkbox {
+          position: absolute;
+          left: var(--innerPaddingSize);
+        }
+        
+        nav {
+          height: 100px;
+          width: 100vw;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+  
+        nav a {
+          margin-left: 50px;
+          color: white;
+        }
+  
+        button {
+          margin-left: 20px;
+          margin-right: 20px;
+        }
+      </style>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000;
+        }
+        .flashcard-container {
+            text-align: center;
+            perspective: 1000px; /* Enables 3D effect */
+        }
+        .flashcard {
+            width: 300px;
+            height: 200px;
+            position: relative;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+        }
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+        .flashcard .card-side {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            color: black;
+            font-size: 15px;
+        }
+        .flashcard .front {
+            background-color: white;
+        }
+        .flashcard .back {
+            background-color: #007bff;
+            color: white;
+            transform: rotateY(180deg);
+        }
+        .buttons {
+            margin-top: 20px;
+        }
+        .logo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+        }
+        .logo img {
+            width: 150px;
+            height: auto;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:disabled {
+            background-color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <nav style="flex-direction: row; justify-content: center;">
+        <div class="logo">
+            <img src="../static/logo.png" alt="Logo">
+        </div>
+    </nav>
+
+    <button
+      id="showUploadButton"
+      style="display: none"
+      onclick="showUploadButton()"
+    >
+      Upload Another File
+    </button>
+
+    <form method="post">
+        {% csrf_token %}
+        <div id="uploadBox">
+          <h1>Upload a Homework file to get started!</h1>
+    
+          <div class="drag-area">
+            <div class="icon">
+              <i
+                style="color: rgb(114 201 255 / 78%)"
+                class="fas fa-cloud-upload-alt"
+              ></i>
+            </div>
+            <header>Drag & Drop to Upload File</header>
+            <span>OR</span>
+            <button class="browse-btn">Browse File</button>
+            <input type="file" hidden />
+          </div>
+    
+          <div
+            class="wixui-button"
+            style="width: 145px; display: block; margin: 20px auto"
+            aria-disabled="false"
+            onclick="upload()"
+          >
+            <span>Upload</span>
+          </div>
+    
+        </div>
+
+    </form>
+
+
+    <div id="outputBox"></div>
+
+
+</div>
+
+<script>
+    function upload() {
+        document.querySelector("form").submit();
+    }
+</script>
+
+<script>
+    function showUploadButton() {
+        document.getElementById("outputBox").innerHTML = "";
+        document.getElementById("uploadBox").style.display = "block";
+        document.getElementById("showUploadButton").style.display = "none";
+      }
+
+      const dropArea = document.querySelector(".drag-area"),
+        dragText = dropArea.querySelector("header"),
+        button = dropArea.querySelector("button"),
+        input = dropArea.querySelector("input");
+
+      let file;
+      let extractedText = ""; // Make extractedText global so it can be accessed in other functions
+
+      button.onclick = () => input.click();
+
+      input.addEventListener("change", function () {
+        file = this.files[0];
+        dropArea.classList.add("active");
+        showFile();
+      });
+
+      dropArea.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        dropArea.classList.add("active");
+        dragText.textContent = "Release to Upload File";
+      });
+
+      dropArea.addEventListener("dragleave", () => {
+        dropArea.classList.remove("active");
+        dragText.textContent = "Drag & Drop to Upload File";
+      });
+
+      dropArea.addEventListener("drop", (event) => {
+        event.preventDefault();
+        file = event.dataTransfer.files[0];
+        showFile();
+      });
+
+      function showFile() {
+        let fileType = file.type;
+        let validExtensions = [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "application/pdf",
+          "application/msword",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "text/plain",
+        ];
+        if (validExtensions.includes(fileType)) {
+          let fileReader = new FileReader();
+          fileReader.onload = () => {
+            let p = document.createElement("p");
+            p.innerHTML = file.name;
+            dropArea.appendChild(p);
+          };
+          fileReader.readAsDataURL(file);
+        } else {
+          alert("This is not a supported File!");
+          dropArea.classList.remove("active");
+          dragText.textContent = "Drag & Drop to Upload File";
+        }
+      }
+
+      async function generateAIResponse(extractedText) {
+        const loader = document.getElementById("loadingBox"); // Select the loader
+        document.querySelector("nav").style.display = "none"; // Hide the nav bar
+        document.getElementById("uploadBox").style.display = "none"; // Hide the upload box
+        document.getElementById("loadingText").textContent = "Thinking..."; // Set loader text
+
+        loader.style.display = "flex"; // Show loader before AI starts processing
+
+        try {
+          console.log("Asking AI...");
+          const aiOutput = await window.askAI(extractedText); // Wait for AI response
+
+          console.log(aiOutput)
+
+          questions = JSON.parse(aiOutput);
+
+          outputBox = document.querySelector("#outputBox");
+
+          const flashcards = questions
+          index = 0
+
+          questions.forEach(question => {
+            const flashcard = document.createElement("div");
+            flashcard.classList.add("flashcard");
+            flashcard.onclick = () => flipCard(flashcard);
+            flashcard.innerHTML = `
+              <div class="card-side front">${question.Question}</div>
+              <div class="card-side back">${question.Answer}</div>
+            `;
+            if (index != 0) {
+              flashcard.style.display = "none";
+            }
+            else {
+                flashcard.style.display = "block";
+            }
+
+            outputBox.appendChild(flashcard);
+            index += 1;
+          })
+
+          buttons = document.createElement("div");
+            buttons.classList.add("buttons");
+            buttons.innerHTML = `
+              <button onclick="prevCard()" id="prevBtn" disabled>Previous</button>
+              <button onclick="nextCard()" id="nextBtn">Next</button>
+            `;
+
+            outputBox.appendChild(buttons);
+  
+        let currentIndex = 0;
+        const flashcardElement = document.querySelector(".flashcard");
+        const frontSide = document.querySelector(".front");
+        const backSide = document.querySelector(".back");
+        const prevBtn = document.getElementById("prevBtn");
+        const nextBtn = document.getElementById("nextBtn");
+
+        // updateCard();
+          
+          console.log("AI Output:", aiOutput);
+          return aiOutput;
+        } catch (error) {
+          console.error(error);
+        } finally {
+          // document.getElementById("showUploadButton").style.display = "block"; // Show output box after AI response
+          loader.style.display = "none"; // Hide loader after AI response
+          document.getElementById("loadingText").textContent = ""; // Clear loader text
+          document.querySelector("nav").style.display = "flex"; // Show the nav bar
+          document.querySelector(".flashcard-container").style.display = "block";
+        }
+      }
+
+      async function upload() {
+        console.log("Getting text...");
+        let fileReader = new FileReader();
+
+        fileReader.onload = function () {
+          let typedarray = new Uint8Array(this.result);
+
+          pdfjsLib
+            .getDocument(typedarray)
+            .promise.then(async (pdf) => {
+              let totalPages = pdf.numPages;
+              let textPromises = [];
+
+              for (let i = 1; i <= totalPages; i++) {
+                textPromises.push(
+                  pdf
+                    .getPage(i)
+                    .then((page) =>
+                      page
+                        .getTextContent()
+                        .then((textContent) =>
+                          textContent.items.map((item) => item.str).join(" ")
+                        )
+                    )
+                );
+              }
+
+              extractedText = (await Promise.all(textPromises)).join("\n\n");
+
+              extraPrompt =
+                `\nGenerate 10 original flashcards from these sample questions. Give these questions in the format [{"Question": "...", "Answer": "..."}, {...}].`;
+
+              // Call the AI model
+              await generateAIResponse(extractedText + extraPrompt);
+            })
+            .catch((error) => console.error("Error loading PDF:", error));
+        };
+
+        fileReader.readAsArrayBuffer(file);
+      }
+
+    function flipCard(flashcardElement) {
+        flashcardElement.classList.toggle("flipped");
+    }
+
+    function prevCard() {
+        const divs = document.querySelectorAll(".flashcard"); // Select all div elements
+
+        flipped = Array.from(divs).find(div => 
+            window.getComputedStyle(div).display === "block"
+        );
+
+        if (flipped) {
+            flipped.classList.remove("flipped");
+            flipped.style.display = "none";
+        }
+        prevFlashcard = flipped.previousElementSibling;
+        if (prevFlashcard) {
+            prevFlashcard.style.display = "block";
+        }
+    }
+
+    function nextCard() {
+        const divs = document.querySelectorAll(".flashcard"); // Select all div elements
+
+        flipped = Array.from(divs).find(div => 
+            window.getComputedStyle(div).display === "block"
+        );
+
+        if (flipped) {
+            flipped.classList.remove("flipped");
+            flipped.style.display = "none";
+        }
+        nextFlashcard = flipped.nextElementSibling;
+        if (nextFlashcard) {
+            nextFlashcard.style.display = "block";
+        }
+    }
+
+</script>
+
+</body>
+</html>
