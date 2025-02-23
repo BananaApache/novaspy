@@ -10,7 +10,7 @@ def extract_text_from_pdf(pdf_path): #needs to be in pdf, turns it into a huge s
             text += page.extract_text() + " "
     return text
 
-def split_text(text, chunk_size=5): #splits text to 5 words on the video at a time
+def split_text(text, chunk_size=9): #splits text to 5 words on the video at a time
     words = text.split()
     return [" ".join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size)]
 
@@ -18,10 +18,9 @@ def generate_tts(text, output_audio): #text to speech
     tts = gTTS(text)
     tts.save(output_audio)
 
-def create_video(pdf_path, bg_video, output_video):
-    text = extract_text_from_pdf(pdf_path)
+def create_video(text, bg_video, output_video):
     phrases = split_text(text)
-    font = "arial.ttf" #FONT MUST BE GIVEN
+    font = "/Users/daniel/Documents/coding_stuff/novaSpy/project_website/static/arial.ttf" #FONT MUST BE GIVEN
     audio_path = "temp_audio.mp3"
     generate_tts(" ".join(phrases), audio_path)
     audio_clip = AudioFileClip(audio_path)
@@ -56,4 +55,4 @@ def create_video(pdf_path, bg_video, output_video):
     os.remove(audio_path) #clean up
 
 # Example usage
-# create_video("testpdf.pdf", "1min30video.mp4", "output.mp4")
+# create_video("text", "1min30video.mp4", "output.mp4")

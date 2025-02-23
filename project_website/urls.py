@@ -9,4 +9,5 @@ urlpatterns = [
     path("flashcards/", views.flashcards),
     path("review-exam/", views.review_exam),
     path("audioLesson/", views.audio_lesson),
+    path("loading/", views.loading),
 ]
